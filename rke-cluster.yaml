@@ -1,0 +1,60 @@
+nodes:
+    - address: 10.0.204.11
+      user: unixadmin
+      role:
+        - controlplane
+        - etcd
+      hostname_override: hqutint-master01
+      ssh_key_path: ~/.ssh/id_rsa
+    - address: 10.0.204.12
+      user: unixadmin
+      role:
+        - controlplane
+        - etcd
+      hostname_override: hqutint-master02
+      ssh_key_path: ~/.ssh/id_rsa
+    - address: 10.0.204.13
+      user: unixadmin
+      role:
+        - controlplane
+        - etcd
+      hostname_override: hqutint-master03
+      ssh_key_path: ~/.ssh/id_rsa
+    - address: 10.0.204.14
+      user: unixadmin
+      role:
+        - worker
+      hostname_override: hqutint-worker01
+      ssh_key_path: ~/.ssh/id_rsa
+    - address: 10.0.204.15
+      user: unixadmin
+      role:
+        - worker
+      hostname_override: hqutint-worker02
+      ssh_key_path: ~/.ssh/id_rsa
+    - address: 10.0.204.16
+      user: unixadmin
+      role:
+        - worker
+      hostname_override: hqutint-worker03
+      ssh_key_path: ~/.ssh/id_rsa
+    - address: 10.0.204.17
+      user: unixadmin
+      role:
+        - worker
+      hostname_override: hqutint-worker04
+      ssh_key_path: ~/.ssh/id_rsa
+    - address: 10.0.204.18
+      user: unixadmin
+      role:
+        - worker
+      hostname_override: hqutint-worker05
+      ssh_key_path: ~/.ssh/id_rsa
+network:
+  plugin: calico
+ingress:
+  provider: none
+authentication:
+    strategy: x509
+    sans:
+      - "10.0.204.30"
