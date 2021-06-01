@@ -1,0 +1,91 @@
+nano nginx-ingress-config-values.yaml
+##########################################################################################
+# Enable the creation of pod security policy
+podSecurityPolicy:
+  enabled: false
+
+# Create a specific service account
+serviceAccount:
+  create: true
+  name: nginx-ingress
+
+controller:
+  # Number of controller pods
+  replicaCount: 3
+  # These services are exposed on the node with IP 10.0.204.(14,15,16,17,18)
+  service:
+    enableHttp: false
+    externalIPs:
+      - 10.0.204.14
+      - 10.0.204.15
+      - 10.0.204.16
+      - 10.0.204.17
+      - 10.0.204.18
+##########################################################################################
+
+helm repo add suse https://kubernetes-charts.suse.com
+
+kubectl create namespace nginx-ingress
+helm install nginx-ingress suse/nginx-ingress \
+--namespace nginx-ingress \
+--values nginx-ingress-config-values.yaml
+
+kubectl -n nginx-ingress get pod
+
+kubectl get svc -n nginx-ingress
+
+
+
+Deploy Kubernetes Dashboard as an example
+##########################################################################################
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0/aio/deploy/recommended.yaml
+
+kubectl create serviceaccount dashboard-admin -n kube-system
+
+kubectl create clusterrolebinding dashboard-admin \
+--clusterrole=cluster-admin \
+--serviceaccount=kube-system:dashboard-admin
+
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+-keyout /tmp/dashboard-tls.key -out /tmp/dashboard-tls.crt \
+-subj "/CN=k8s-dashboard.com/O=k8s-dashboard"
+
+kubectl create secret tls dashboard-tls \
+--key /tmp/dashboard-tls.key --cert /tmp/dashboard-tls.crt \
+-n kubernetes-dashboard
+
+nano dashboard-ingress.yaml
+----------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: dashboard-ingress
+  namespace: kubernetes-dashboard
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/secure-backends: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  tls:
+    - hosts:
+      - k8s-dashboard.com
+      secretName: dashboard-tls
+  rules:
+  - host: k8s-dashboard.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kubernetes-dashboard
+          servicePort: 443
+-------------------------------------------------------------------------
+kubectl apply -f dashboard-ingress.yaml
+
+kubectl get ing -n kubernetes-dashboard
+
+kubectl describe secrets -n kube-system \
+$(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}')
+
+-------------------------------------------------------------------------
