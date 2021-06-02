@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    field.cattle.io/publicEndpoints: '[{"addresses":["10.15.70.128","10.15.70.129","10.15.70.141","10.15.70.142","10.15.70.143"],"port":80,"protocol":"HTTP","serviceName":"longhorn-system:longhorn-frontend","ingressName":"longhorn-system:longhorn-ingress","hostname":"longhorn-ui.apps-rke-dev.qidbnet.local","path":"/","allNodes":false}]'
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.k8s.io/v1beta1","kind":"Ingress","metadata":{"annotations":{"nginx.ingress.kubernetes.io/auth-realm":"Authentication Required ","nginx.ingress.kubernetes.io/auth-secret":"basic-auth","nginx.ingress.kubernetes.io/auth-type":"basic"},"name":"longhorn-ingress","namespace":"longhorn-system"},"spec":{"rules":[{"http":{"paths":[{"backend":{"serviceName":"longhorn-frontend","servicePort":80},"path":"/"}]}}]}}
+    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required '
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-type: basic
+  name: longhorn-ingress
+  namespace: longhorn-system
+spec:
+  rules:
+  - host: longhorn-ui.apps-rke-dev.qidbnet.local
+    http:
+      paths:
+      - backend:
+          serviceName: longhorn-frontend
+          servicePort: 80
+        path: /
+        pathType: ImplementationSpecific
