@@ -1,0 +1,11 @@
+{
+ "proxies":
+ {
+   "default":
+   {
+     "httpProxy": "http://10.0.50.175:8080",
+     "httpsProxy": "http://10.0.50.175:8080",
+     "noProxy": ""
+   }
+ }
+}
