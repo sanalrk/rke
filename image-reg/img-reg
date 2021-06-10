@@ -1,0 +1,20 @@
+docker run -d -p 5000:5000 --restart=always --name registry registry:2
+
+$ docker tag hello-world 159.100.243.157:5000/hello-world # Replace with your IP/domain
+
+ docker push 159.100.243.157:5000/hello-world
+ 
+/etc/docker/daemon.json
+
+{
+  "insecure-registries" : ["my_registry_address:5000"]
+}
+
+$ curl -X GET http://159.100.243.157:5000/v2/_catalog
+
+docker run -d \
+  -p 5000:5000 \
+  --restart=always \
+  --name registry \
+  -v /mnt/registry:/var/lib/registry \
+  registry:2

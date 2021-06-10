@@ -1,0 +1,158 @@
+8.1.3.2.1 TLS Certificate REPORT DOCUMENTATION BUG#
+You must configure your certificates for the components as secrets in the Kubernetes cluster. Get certificates from your certificate authority.
+
+Individual certificate
+
+Single-name TLS certificate protects a single sub-domain, and it means each sub-domain owns its private key. From the security perspective, it is recommended to use individual certificates. However, you have to manage the private key and the certificate rotation separately.
+
+ImportantImportant: Note Down Secret Names For Configuration
+When you choose to secure each service with an individual certificate, you must repeat the step below for each component and adjust the name for the individual secret each time. Please note down the names of the secrets you have created.
+
+In this example, the secret name is monitoring-tls.
+
+Wildcard certificate
+
+Wildcard TLS allows you to secure multiple sub-domains with one certificate and it means multiple sub-domains share the same private key. You can then add more sub-domains without having to redeploy the certificate and moreover, save the additional certificate costs.
+
+Refer to Section 6.9.9.1.1, “Trusted Server Certificate” on how to sign the trusted certificate or refer to Section 6.9.9.2.2, “Self-signed Server Certificate” on how to sign the self-signed certificate. The server.conf for DNS.1 is prometheus.example.com and prometheus-alertmanager.example.com grafana.example.com for individual certificates separately. The server.conf for DNS.1 is *.example.com for a wildcard certificate.
+
+Then, import your certificate and key pair into the Kubernetes cluster secret name monitoring-tls. In this example, the certificate and key are monitoring.crt and monitoring.key.
+
+kubectl create -n monitoring secret tls monitoring-tls  \
+--key  ./monitoring.key \
+--cert ./monitoring.crt
+COPY CODE
+8.1.3.2.2 Prometheus REPORT DOCUMENTATION BUG#
+Create a configuration file prometheus-config-values.yaml
+
+We need to configure the storage for our deployment. Choose among the options and uncomment the line in the config file. In production environments you must configure persistent storage.
+
+Use an existing PersistentVolumeClaim
+
+Use a StorageClass (preferred)
+
+# Alertmanager configuration
+alertmanager:
+  enabled: true
+  ingress:
+    enabled: true
+    hosts:
+    -  prometheus-alertmanager.example.com
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: prometheus-basic-auth
+      nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+    tls:
+      - hosts:
+        - prometheus-alertmanager.example.com
+        secretName: monitoring-tls
+  persistentVolume:
+    enabled: true
+    ## Use a StorageClass
+    storageClass: my-storage-class
+    ## Create a PersistentVolumeClaim of 2Gi
+    size: 2Gi
+    ## Use an existing PersistentVolumeClaim (my-pvc)
+    #existingClaim: my-pvc
+
+## Alertmanager is configured through alertmanager.yml. This file and any others
+## listed in alertmanagerFiles will be mounted into the alertmanager pod.
+## See configuration options https://prometheus.io/docs/alerting/configuration/
+#alertmanagerFiles:
+#  alertmanager.yml:
+
+# Create a specific service account
+serviceAccounts:
+  nodeExporter:
+    name: prometheus-node-exporter
+
+# Node tolerations for node-exporter scheduling to nodes with taints
+# Allow scheduling of node-exporter on master nodes
+nodeExporter:
+  hostNetwork: false
+  hostPID: false
+  podSecurityPolicy:
+    enabled: true
+    annotations:
+      apparmor.security.beta.kubernetes.io/allowedProfileNames: runtime/default
+      apparmor.security.beta.kubernetes.io/defaultProfileName: runtime/default
+      seccomp.security.alpha.kubernetes.io/allowedProfileNames: runtime/default
+      seccomp.security.alpha.kubernetes.io/defaultProfileName: runtime/default
+  tolerations:
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: NoSchedule
+
+# Disable Pushgateway
+pushgateway:
+  enabled: false
+
+# Prometheus configuration
+server:
+  ingress:
+    enabled: true
+    hosts:
+    - prometheus.example.com
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: prometheus-basic-auth
+      nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+    tls:
+      - hosts:
+        - prometheus.example.com
+        secretName: monitoring-tls
+  persistentVolume:
+    enabled: true
+    ## Use a StorageClass
+    storageClass: my-storage-class
+    ## Create a PersistentVolumeClaim of 8Gi
+    size: 8Gi
+    ## Use an existing PersistentVolumeClaim (my-pvc)
+    #existingClaim: my-pvc
+
+## Prometheus is configured through prometheus.yml. This file and any others
+## listed in serverFiles will be mounted into the server pod.
+## See configuration options
+## https://prometheus.io/docs/prometheus/latest/configuration/configuration/
+#serverFiles:
+#  prometheus.yml:
+COPY CODE
+Add SUSE helm charts repository
+
+helm repo add suse https://kubernetes-charts.suse.com
+COPY CODE
+Deploy SUSE prometheus helm chart and pass our configuration values file.
+
+helm install prometheus suse/prometheus \
+--namespace monitoring \
+--values prometheus-config-values.yaml
+COPY CODE
+There need to be 3 pods running (3 node-exporter pods because we have 3 nodes).
+
+kubectl -n monitoring get pod | grep prometheus
+NAME                                             READY     STATUS    RESTARTS   AGE
+prometheus-alertmanager-5487596d54-kcdd6         2/2       Running   0          2m
+prometheus-kube-state-metrics-566669df8c-krblx   1/1       Running   0          2m
+prometheus-node-exporter-jnc5w                   1/1       Running   0          2m
+prometheus-node-exporter-qfwp9                   1/1       Running   0          2m
+prometheus-node-exporter-sc4ls                   1/1       Running   0          2m
+prometheus-server-6488f6c4cd-5n9w8               2/2       Running   0          2m
+COPY CODE
+There need to be be 2 ingresses configured
+
+kubectl get ingress -n monitoring
+NAME                      HOSTS                                 ADDRESS   PORTS     AGE
+prometheus-alertmanager   prometheus-alertmanager.example.com             80, 443   87s
+prometheus-server         prometheus.example.com                          80, 443   87s
+COPY CODE
+At this stage, the Prometheus Expression browser/API should be accessible, depending on your network configuration
+
+NodePort: https://prometheus.example.com:32443
+
+External IPs: https://prometheus.example.com
+
+LoadBalancer: https://prometheus.example.com
+
+
