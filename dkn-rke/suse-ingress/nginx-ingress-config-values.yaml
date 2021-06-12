@@ -1,0 +1,21 @@
+# Enable the creation of pod security policy
+podSecurityPolicy:
+  enabled: false
+
+# Create a specific service account
+serviceAccount:
+  create: true
+  name: nginx-ingress
+
+controller:
+  # Number of controller pods
+  replicaCount: 3
+  # These services are exposed on the node with IP 10.0.204.(14,15,16,17,18)
+  service:
+    enableHttp: false
+    externalIPs:
+      - 10.0.204.14
+      - 10.0.204.15
+      - 10.0.204.16
+      - 10.0.204.17
+      - 10.0.204.18
