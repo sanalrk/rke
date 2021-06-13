@@ -1,0 +1,2 @@
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /data/rancher/tls.key -out /data/rancher/tls.crt -subj "/CN=rancherui.apps-int-dev.barwabank.local"
+kubectl -n cattle-system create secret tls rancherui-tls --key /data/rancher/tls.key --cert /data/rancher/tls.crt

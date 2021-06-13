@@ -1,0 +1,2 @@
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /data/longhorn/tls.key -out /data/longhorn/tls.crt -subj "/CN=longhornui.apps-int-dev.barwabank.local"
+kubectl -n longhorn-system create secret tls longhornui-tls --key /data/longhorn/tls.key --cert /data/longhorn/tls.crt
