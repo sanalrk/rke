@@ -1,0 +1,28 @@
+nano backup.sh
+
+TODAY=`date +"%Y-%m-%d"`
+## Create backup in local directory
+if [[ -z $(ls /bkp/etcd-bkp/master1/ | grep $TODAY) ]]; then
+echo "INFO (step1): creating snapshot$TODAY"
+rke etcd snapshot-save --config /data/rke/cluster.yml --name snapshot-name $TODAY
+scp unixadmin@<master1-IP>:/opt/rke/etcd-snapshots/$TODAY.zip /bkp/etcd-bkp/master1/
+scp unixadmin@<master2-IP>:/opt/rke/etcd-snapshots/$TODAY.zip /bkp/etcd-bkp/master2/
+scp unixadmin@<master3-IP>:/opt/rke/etcd-snapshots/$TODAY.zip /bkp/etcd-bkp/master3/
+else
+echo "snapshot-$TODAY already exists"
+fi
+ssh unixadmin@<master1-IP> 'bash -s' < master1bkup.sh
+ssh unixadmin@<master2-IP> 'bash -s' < master1bkup.sh
+ssh unixadmin@<master3-IP> 'bash -s' < master1bkup.sh
+
+
+
+nano master-bkup.sh
+
+LASTDATE=`date +"%Y-%m-%d" --date="10 days ago"`
+## Delete 10 days before backup form local directory
+if [[ -z $(ls /opt/rke/etcd-snapshots | grep $LASTDATE) ]]; then
+echo "Not existing $LASTDATE.db "
+else
+rm -rf /opt/rke/etcd-snapshots/$LASTDATE.zip
+fi
